@@ -52,8 +52,58 @@ export class JiraService {
         return await this.updateIssueDescription(version, latestCommit, commits);
       case 'jira_version':
         return await this.createOrUpdateProjectVersion(version, latestCommit, commits);
+      case 'confluence_page':
+        return await this.updateConfluencePage(version, latestCommit, commits);
       default:
-        throw new Error(`Unsupported Jira update mode: ${mode}`);
+        throw new Error(`Unsupported Atlassian update mode: ${mode}`);
+    }
+  }
+
+  /**
+   * Updates a Confluence Cloud Page by prepending/updating its storage format content
+   */
+  private async updateConfluencePage(
+    version: string,
+    latestCommit: CommitInfo,
+    commits: CommitInfo[]
+  ): Promise<{ success: boolean; mode: string; details: string }> {
+    const pageId = this.config.jira.confluencePageId;
+    if (!pageId) throw new Error('CONFLUENCE_PAGE_ID or CONFLUENCE_PAGE_URL is required for Confluence updates');
+
+    const newChangelogHTML = ChangelogGenerator.generateConfluenceStorageFormat(version, latestCommit, commits);
+
+    try {
+      // 1. Fetch current Confluence page content and version
+      const getRes = await this.client!.get(`/wiki/rest/api/content/${pageId}?expand=body.storage,version`);
+      const pageData = getRes.data;
+      const currentVersionNumber = pageData.version?.number || 1;
+      const title = pageData.title || 'Changelogs';
+      const existingStorage = pageData.body?.storage?.value || '';
+
+      // Prepend the new changelog update to existing content
+      const updatedStorage = `${newChangelogHTML}\n<br/>\n${existingStorage}`;
+
+      // 2. Put updated page back to Confluence REST API v1
+      await this.client!.put(`/wiki/rest/api/content/${pageId}`, {
+        id: pageId,
+        type: 'page',
+        title,
+        version: {
+          number: currentVersionNumber + 1,
+        },
+        body: {
+          storage: {
+            value: updatedStorage,
+            representation: 'storage',
+          },
+        },
+      });
+
+      const details = `Successfully updated Confluence Page "${title}" (ID: ${pageId}) to version ${currentVersionNumber + 1} with release ${version} (commit: ${latestCommit.shortHash})`;
+      return { success: true, mode: 'confluence_page', details };
+    } catch (error: any) {
+      const errMsg = error.response?.data?.message || error.response?.data?.errorMessages?.join(', ') || error.message;
+      throw new Error(`Failed to update Confluence Page ID ${pageId}: ${errMsg}`);
     }
   }
 

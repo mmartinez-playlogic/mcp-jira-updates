@@ -24,8 +24,9 @@ export class GitHubService {
         return this.fetchFromLocalGit(limit);
     }
     async fetchFromOctokit(limit) {
-        if (!this.octokit)
-            throw new Error('Octokit not initialized');
+        if (!this.octokit || !this.config.github.owner || !this.config.github.repo) {
+            throw new Error('Octokit/GitHub parameters not fully configured');
+        }
         const { owner, repo, branch } = this.config.github;
         // Fetch commits on branch
         const { data: commitsData } = await this.octokit.rest.repos.listCommits({
@@ -58,9 +59,13 @@ export class GitHubService {
     fetchFromLocalGit(limit) {
         try {
             const branch = this.config.github.branch || 'main';
+            const cwd = this.config.github.localRepoPath || process.cwd();
             // %H: commit hash, %h: short hash, %an: author name, %ae: author email, %ad: date, %s: subject
             const format = '%H%x1f%h%x1f%an%x1f%ae%x1f%ad%x1f%s';
-            const output = execSync(`git log -n ${limit} --pretty=format:"${format}"`, { encoding: 'utf-8' });
+            const output = execSync(`git log -n ${limit} --pretty=format:"${format}"`, {
+                encoding: 'utf-8',
+                cwd,
+            });
             const lines = output.trim().split('\n').filter(Boolean);
             const commits = lines.map((line) => {
                 const [hash, shortHash, author, email, date, message] = line.split('\x1f');

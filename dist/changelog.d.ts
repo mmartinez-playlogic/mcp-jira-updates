@@ -18,6 +18,10 @@ export declare class ChangelogGenerator {
      */
     static generateADF(version: string, latestCommit: CommitInfo, commits: CommitInfo[]): any;
     /**
+     * Generates Confluence Storage Format XHTML (HTML subset used by Confluence Cloud)
+     */
+    static generateConfluenceStorageFormat(version: string, latestCommit: CommitInfo, commits: CommitInfo[]): string;
+    /**
      * Plain text summary for console outputs & webhook messages
      */
     static generateSummaryText(version: string, latestCommit: CommitInfo, commitsCount: number): string;

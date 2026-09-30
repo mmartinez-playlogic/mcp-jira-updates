@@ -12,7 +12,8 @@
     "start": "tsx src/cli.ts sync",
     "sync": "tsx src/cli.ts sync",
     "cli": "tsx src/cli.ts",
-    "dry-run": "tsx src/cli.ts sync --dry-run"
+    "dry-run": "tsx src/cli.ts sync --dry-run",
+    "logs": "tsx src/cli.ts logs"
   },
   "keywords": [
     "github",

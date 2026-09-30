@@ -13,6 +13,10 @@ export declare class JiraService {
         details: string;
     }>;
     /**
+     * Updates a Confluence Cloud Page by prepending/updating its storage format content
+     */
+    private updateConfluencePage;
+    /**
      * Posts an issue comment formatted in ADF (Atlassian Document Format)
      */
     private addIssueComment;

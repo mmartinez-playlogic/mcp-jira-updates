@@ -174,6 +174,43 @@ export class ChangelogGenerator {
   }
 
   /**
+   * Generates Confluence Storage Format XHTML (HTML subset used by Confluence Cloud)
+   */
+  static generateConfluenceStorageFormat(
+    version: string,
+    latestCommit: CommitInfo,
+    commits: CommitInfo[]
+  ): string {
+    const categorized = this.categorizeCommits(commits);
+    const dateStr = new Date().toISOString().split('T')[0];
+
+    let html = `<h2>🚀 Release / Deployment Update: ${version}</h2>`;
+    html += `<p><strong>Date:</strong> ${dateStr} | <strong>Target Commit:</strong> <code>${latestCommit.shortHash}</code> (${latestCommit.hash})<br/>`;
+    html += `<strong>Author:</strong> ${latestCommit.author}</p>`;
+
+    const addHTMLSection = (title: string, items: CommitInfo[]) => {
+      if (items.length === 0) return '';
+      let sec = `<h3>${title}</h3><ul>`;
+      for (const item of items) {
+        const firstLine = item.message.split('\n')[0].replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        sec += `<li><code>${item.shortHash}</code> ${firstLine} <em>(by ${item.author})</em></li>`;
+      }
+      sec += `</ul>`;
+      return sec;
+    };
+
+    html += addHTMLSection('✨ Features', categorized.features);
+    html += addHTMLSection('🐛 Bug Fixes', categorized.fixes);
+    html += addHTMLSection('⚡ Performance Improvements', categorized.performance);
+    html += addHTMLSection('📚 Documentation', categorized.documentation);
+    html += addHTMLSection('🔧 Chores & Maintenance', categorized.chores);
+    html += addHTMLSection('🔄 Other Changes', categorized.other);
+
+    html += `<hr/><p><em>Automated changelog updated by GitHub to Jira & Confluence Sync.</em></p>`;
+    return html;
+  }
+
+  /**
    * Plain text summary for console outputs & webhook messages
    */
   static generateSummaryText(
@@ -181,6 +218,6 @@ export class ChangelogGenerator {
     latestCommit: CommitInfo,
     commitsCount: number
   ): string {
-    return `[Jira Changelog Sync] Version ${version} published for commit ${latestCommit.shortHash} (${commitsCount} commits processed).`;
+    return `[Jira/Confluence Changelog Sync] Version ${version} published for commit ${latestCommit.shortHash} (${commitsCount} commits processed).`;
   }
 }

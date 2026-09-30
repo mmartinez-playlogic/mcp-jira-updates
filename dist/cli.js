@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { runSync } from './index.js';
+import { Logger } from './logger.js';
 const program = new Command();
 program
     .name('jira-changelog')
@@ -17,6 +18,8 @@ program
     .option('-o, --owner <owner>', 'GitHub repository owner/username')
     .option('-r, --repo <repo>', 'GitHub repository name')
     .option('-b, --branch <branch>', 'GitHub target branch (default: main)')
+    .option('-path, --path <path>', 'Path to local git repository directory')
+    .option('-c, --confluence <confluencePageIdOrUrl>', 'Confluence Page ID or Page URL to update')
     .action(async (options) => {
     try {
         const overrides = {};
@@ -30,6 +33,11 @@ program
             overrides.jira = overrides.jira || {};
             overrides.jira.projectKey = options.project;
         }
+        if (options.confluence) {
+            overrides.jira = overrides.jira || {};
+            overrides.jira.confluencePageId = options.confluence;
+            overrides.jira.updateMode = 'confluence_page';
+        }
         if (options.mode) {
             overrides.jira = overrides.jira || {};
             overrides.jira.updateMode = options.mode;
@@ -38,7 +46,7 @@ program
             overrides.versioning = overrides.versioning || {};
             overrides.versioning.prefix = options.versionPrefix;
         }
-        if (options.owner || options.repo || options.branch) {
+        if (options.owner || options.repo || options.branch || options.path) {
             overrides.github = overrides.github || {};
             if (options.owner)
                 overrides.github.owner = options.owner;
@@ -46,6 +54,8 @@ program
                 overrides.github.repo = options.repo;
             if (options.branch)
                 overrides.github.branch = options.branch;
+            if (options.path)
+                overrides.github.localRepoPath = options.path;
         }
         const result = await runSync(overrides);
         console.log('\n================ Execution Summary ================');
@@ -60,5 +70,14 @@ program
         console.error('\n❌ Execution Failed:', err.message);
         process.exit(1);
     }
+});
+program
+    .command('logs')
+    .description('Display recent Jira Changelog sync logs')
+    .option('-n, --lines <number>', 'Number of recent log lines to show', '20')
+    .action((options) => {
+    console.log(`\n📋 --- Recent Jira Sync Logs (${Logger.getLogFilePath()}) ---`);
+    console.log(Logger.readLogs(parseInt(options.lines, 10)));
+    console.log('----------------------------------------------------------------------\n');
 });
 program.parse(process.argv);
