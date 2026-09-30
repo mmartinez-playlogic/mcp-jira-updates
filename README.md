@@ -137,3 +137,4 @@ Whenever code is merged to `main`, GitHub Actions will automatically run the syn
 ## 📜 License
 
 MIT
+# mcp-jira-updates
