@@ -87,14 +87,32 @@ export class GitHubService {
 
   private fetchFromLocalGit(limit: number): CommitHistoryResult {
     try {
-      const branch = this.config.github.branch || 'main';
+      const targetBranch = this.config.github.branch || 'main';
       const cwd = this.config.github.localRepoPath || process.cwd();
       // %H: commit hash, %h: short hash, %an: author name, %ae: author email, %ad: date, %s: subject
       const format = '%H%x1f%h%x1f%an%x1f%ae%x1f%ad%x1f%s';
-      const output = execSync(`git log -n ${limit} --pretty=format:"${format}"`, {
-        encoding: 'utf-8',
-        cwd,
-      });
+
+      let output = '';
+      const branchesToTry = [targetBranch, `origin/${targetBranch}`, 'main', 'master', 'HEAD'];
+
+      for (const branchRef of branchesToTry) {
+        try {
+          output = execSync(`git log ${branchRef} -n ${limit} --pretty=format:"${format}"`, {
+            encoding: 'utf-8',
+            cwd,
+          });
+          if (output.trim()) break;
+        } catch {
+          // Try next branch ref
+        }
+      }
+
+      if (!output.trim()) {
+        output = execSync(`git log -n ${limit} --pretty=format:"${format}"`, {
+          encoding: 'utf-8',
+          cwd,
+        });
+      }
 
       const lines = output.trim().split('\n').filter(Boolean);
       const commits: CommitInfo[] = lines.map((line) => {
@@ -120,7 +138,7 @@ export class GitHubService {
         latestCommit,
         commits,
         computedVersion,
-        branch,
+        branch: targetBranch,
       };
     } catch (err) {
       throw new Error(`Failed to fetch commit history via GitHub API or local git: ${(err as Error).message}`);
