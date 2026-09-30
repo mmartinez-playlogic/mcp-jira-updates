@@ -1,41 +1,65 @@
-name: GitHub to Jira Changelog Sync
+name: 🚀 Betmaker Changelog → Confluence Sync
 
 on:
-  push:
-    branches:
-      - main
+  # Trigger manually from GitHub Actions tab with optional inputs
   workflow_dispatch:
+    inputs:
+      version_prefix:
+        description: 'Version prefix (e.g. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+  # Automatically run every hour to check for new merges to main
+  schedule:
+    - cron: '0 * * * *'
 
 jobs:
-  jira-changelog-sync:
+  sync-changelog:
+    name: Sync Betmaker PR Merges → Confluence
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: ⬇️ Checkout mcp-jira-updates
+        uses: actions/checkout@v4
+
+      - name: ⬇️ Checkout betmaker repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 20
+          repository: playlogiq/pq-docker
+          ref: main
+          token: ${{ secrets.GH_PAT }}
+          path: betmaker-repo
+          fetch-depth: 50
 
-      - name: Setup Node.js
+      - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
-      - name: Install Dependencies
+      - name: 📦 Install Dependencies
         run: npm ci
 
-      - name: Run Jira Changelog Sync
+      - name: 🔄 Run Changelog Sync (PR Merges Only)
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_OWNER: ${{ github.repository_owner }}
-          GITHUB_REPO: ${{ github.event.repository.name }}
-          GITHUB_BRANCH: main
           JIRA_HOST: ${{ secrets.JIRA_HOST }}
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
-          JIRA_ISSUE_KEY: ${{ secrets.JIRA_ISSUE_KEY }}
-          JIRA_UPDATE_MODE: ${{ secrets.JIRA_UPDATE_MODE || 'issue_comment' }}
-          VERSION_PREFIX: ${{ secrets.VERSION_PREFIX || 'v1.0.0' }}
-        run: npm run sync
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+          CONFLUENCE_PAGE_URL: https://playlogiq.atlassian.net/wiki/spaces/SD/pages/888995841/Changelog+Betmaker
+          VERSION_PREFIX: ${{ inputs.version_prefix || 'v1.0.0' }}
+          MERGES_ONLY: 'true'
+          ONLY_NEW_COMMITS: 'true'
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          npx tsx src/cli.ts sync \
+            --path ${{ github.workspace }}/betmaker-repo/src/betmaker \
+            --branch main \
+            --confluence https://playlogiq.atlassian.net/wiki/spaces/SD/pages/888995841/Changelog+Betmaker \
+            --only-new
+
+      - name: 📋 Show Recent Sync Logs
+        if: always()
+        run: npx tsx src/cli.ts logs --lines 10

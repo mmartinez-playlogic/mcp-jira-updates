@@ -1,0 +1,67 @@
+name: 🚀 Changelog → Confluence Sync
+
+on:
+  # Fires automatically on every PR merge to main
+  push:
+    branches:
+      - main
+  # Also allows manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      version_prefix:
+        description: 'Version prefix (e.g. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+
+jobs:
+  sync-changelog:
+    name: Sync PR Merges → Confluence Changelog
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout betmaker repo (with history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: ⬇️ Checkout mcp-jira-updates tool
+        uses: actions/checkout@v4
+        with:
+          repository: playlogiq/mcp-jira-updates
+          token: ${{ secrets.GH_PAT }}
+          path: mcp-jira-updates
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Sync Tool Dependencies
+        working-directory: mcp-jira-updates
+        run: npm ci
+
+      - name: 🔄 Run Changelog Sync (PR Merges Only)
+        working-directory: mcp-jira-updates
+        env:
+          JIRA_HOST: ${{ secrets.JIRA_HOST }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+          VERSION_PREFIX: ${{ inputs.version_prefix || 'v1.0.0' }}
+          MERGES_ONLY: 'true'
+          ONLY_NEW_COMMITS: 'true'
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          npx tsx src/cli.ts sync \
+            --path ${{ github.workspace }}/src/betmaker \
+            --branch main \
+            --confluence https://playlogiq.atlassian.net/wiki/spaces/SD/pages/888995841/Changelog+Betmaker \
+            --only-new
+
+      - name: 📋 Show Recent Sync Logs
+        if: always()
+        working-directory: mcp-jira-updates
+        run: npx tsx src/cli.ts logs --lines 10

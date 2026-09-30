@@ -6,5 +6,6 @@ export interface SyncResult {
     commitsProcessed: number;
     jiraDetails: string;
     message: string;
+    skipped?: boolean;
 }
 export declare function runSync(options?: Partial<AppConfig>): Promise<SyncResult>;

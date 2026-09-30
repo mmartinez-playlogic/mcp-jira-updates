@@ -13,7 +13,8 @@
     "sync": "tsx src/cli.ts sync",
     "cli": "tsx src/cli.ts",
     "dry-run": "tsx src/cli.ts sync --dry-run",
-    "logs": "tsx src/cli.ts logs"
+    "logs": "tsx src/cli.ts logs",
+    "watch": "tsx src/cli.ts watch"
   },
   "keywords": [
     "github",
@@ -30,10 +31,12 @@
     "@octokit/rest": "^20.1.0",
     "axios": "^1.7.9",
     "commander": "^12.1.0",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "nodemailer": "^10.0.13"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/nodemailer": "^8.0.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

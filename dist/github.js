@@ -60,13 +60,16 @@ export class GitHubService {
         try {
             const targetBranch = this.config.github.branch || 'main';
             const cwd = this.config.github.localRepoPath || process.cwd();
+            const mergesOnly = this.config.versioning.mergesOnly !== false;
+            const mergesFlag = mergesOnly ? '--merges ' : '';
             // %H: commit hash, %h: short hash, %an: author name, %ae: author email, %ad: date, %s: subject
             const format = '%H%x1f%h%x1f%an%x1f%ae%x1f%ad%x1f%s';
             let output = '';
             const branchesToTry = [targetBranch, `origin/${targetBranch}`, 'main', 'master', 'HEAD'];
+            // First try with --merges if enabled
             for (const branchRef of branchesToTry) {
                 try {
-                    output = execSync(`git log ${branchRef} -n ${limit} --pretty=format:"${format}"`, {
+                    output = execSync(`git log ${branchRef} ${mergesFlag}-n ${limit} --pretty=format:"${format}"`, {
                         encoding: 'utf-8',
                         cwd,
                     });
@@ -77,6 +80,22 @@ export class GitHubService {
                     // Try next branch ref
                 }
             }
+            // Fallback without --merges if --merges returned empty
+            if (!output.trim() && mergesOnly) {
+                for (const branchRef of branchesToTry) {
+                    try {
+                        output = execSync(`git log ${branchRef} -n ${limit} --pretty=format:"${format}"`, {
+                            encoding: 'utf-8',
+                            cwd,
+                        });
+                        if (output.trim())
+                            break;
+                    }
+                    catch {
+                        // Try next branch ref
+                    }
+                }
+            }
             if (!output.trim()) {
                 output = execSync(`git log -n ${limit} --pretty=format:"${format}"`, {
                     encoding: 'utf-8',
@@ -84,7 +103,7 @@ export class GitHubService {
                 });
             }
             const lines = output.trim().split('\n').filter(Boolean);
-            const commits = lines.map((line) => {
+            let commits = lines.map((line) => {
                 const [hash, shortHash, author, email, date, message] = line.split('\x1f');
                 return {
                     hash,
@@ -95,8 +114,12 @@ export class GitHubService {
                     date,
                 };
             });
+            // When mergesOnly, keep only real PR merges (Merge pull request #N)
+            if (mergesOnly) {
+                commits = commits.filter((c) => /^Merge pull request #\d+/i.test((c.message || '').trim()));
+            }
             if (commits.length === 0) {
-                throw new Error('No local git commits found');
+                throw new Error('No merge commits found on branch. Ensure the branch has merged pull requests.');
             }
             const latestCommit = commits[0];
             const computedVersion = this.generateVersion(latestCommit.shortHash);

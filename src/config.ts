@@ -1,6 +1,14 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Load .env file if available
+// Resolve directory of mcp-jira-updates project
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const appRootDir = path.resolve(__dirname, '..');
+
+// Load .env from app root directory, then fallback to cwd .env
+dotenv.config({ path: path.join(appRootDir, '.env') });
 dotenv.config();
 
 export interface AppConfig {
@@ -23,11 +31,20 @@ export interface AppConfig {
   versioning: {
     prefix: string;
     includeCommitHash: boolean;
+    mergesOnly?: boolean;
   };
   notification: {
     webhookUrl?: string;
+    email?: string;
+    smtp?: {
+      host?: string;
+      port?: number;
+      user?: string;
+      pass?: string;
+    };
   };
   dryRun: boolean;
+  onlyNewCommits?: boolean;
 }
 
 export function extractConfluencePageId(input?: string): string | undefined {
@@ -69,11 +86,20 @@ export function getConfig(overrides?: Partial<AppConfig>): AppConfig {
     versioning: {
       prefix: overrides?.versioning?.prefix || process.env.VERSION_PREFIX || 'v1.0.0',
       includeCommitHash: overrides?.versioning?.includeCommitHash ?? (process.env.INCLUDE_COMMIT_HASH !== 'false'),
+      mergesOnly: overrides?.versioning?.mergesOnly ?? (process.env.MERGES_ONLY === 'true' || process.env.MERGES_ONLY === undefined),
     },
     notification: {
       webhookUrl: overrides?.notification?.webhookUrl || process.env.NOTIFICATION_WEBHOOK_URL,
+      email: overrides?.notification?.email || process.env.NOTIFICATION_EMAIL || 'm.martinez@playlogiq.com',
+      smtp: {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : undefined,
+        user: process.env.SMTP_USER || process.env.JIRA_EMAIL,
+        pass: process.env.SMTP_PASS || process.env.JIRA_API_TOKEN,
+      },
     },
     dryRun: overrides?.dryRun ?? false,
+    onlyNewCommits: overrides?.onlyNewCommits ?? (process.env.ONLY_NEW_COMMITS === 'true'),
   };
 }
 

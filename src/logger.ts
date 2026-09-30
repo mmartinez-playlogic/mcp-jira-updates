@@ -1,5 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const LOG_DIR = path.resolve(__dirname, '../logs');
+const LOG_FILE = path.join(LOG_DIR, 'jira-sync.log');
 
 export interface LogEntry {
   timestamp: string;
@@ -10,9 +16,6 @@ export interface LogEntry {
   jiraDetails: string;
   error?: string;
 }
-
-const LOG_DIR = path.resolve(process.cwd(), 'logs');
-const LOG_FILE = path.join(LOG_DIR, 'jira-sync.log');
 
 export class Logger {
   static ensureLogDirectory() {

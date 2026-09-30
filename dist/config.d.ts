@@ -18,11 +18,20 @@ export interface AppConfig {
     versioning: {
         prefix: string;
         includeCommitHash: boolean;
+        mergesOnly?: boolean;
     };
     notification: {
         webhookUrl?: string;
+        email?: string;
+        smtp?: {
+            host?: string;
+            port?: number;
+            user?: string;
+            pass?: string;
+        };
     };
     dryRun: boolean;
+    onlyNewCommits?: boolean;
 }
 export declare function extractConfluencePageId(input?: string): string | undefined;
 export declare function getConfig(overrides?: Partial<AppConfig>): AppConfig;
