@@ -60,7 +60,23 @@ export class JiraService {
   }
 
   /**
-   * Updates a Confluence Cloud Page by prepending/updating its storage format content
+   * Resolves the site's cloud id, needed to address it through api.atlassian.com.
+   * Scoped API tokens are only accepted by that gateway, not by the site URL.
+   */
+  private async getCloudId(): Promise<string> {
+    const res = await axios.get(`${this.config.jira.host}/_edge/tenant_info`);
+    const cloudId = res.data?.cloudId;
+    if (!cloudId) throw new Error(`Could not resolve cloud id for ${this.config.jira.host}`);
+    return cloudId;
+  }
+
+  /**
+   * Updates a Confluence Cloud Page by prepending the new changelog entry to its
+   * storage-format body.
+   *
+   * Uses the v2 pages API through the api.atlassian.com gateway so that a scoped
+   * API token (read:page:confluence + write:page:confluence) is enough. An
+   * unscoped token works there too.
    */
   private async updateConfluencePage(
     version: string,
@@ -73,8 +89,11 @@ export class JiraService {
     const newChangelogHTML = ChangelogGenerator.generateConfluenceStorageFormat(version, latestCommit, commits, this.config.versioning.manifestVersion);
 
     try {
-      // 1. Fetch current Confluence page content and version
-      const getRes = await this.client!.get(`/wiki/rest/api/content/${pageId}?expand=body.storage,version`);
+      const cloudId = await this.getCloudId();
+      const pagesUrl = `https://api.atlassian.com/ex/confluence/${cloudId}/wiki/api/v2/pages/${pageId}`;
+
+      // 1. Fetch current page body and version
+      const getRes = await this.client!.get(`${pagesUrl}?body-format=storage`);
       const pageData = getRes.data;
       const currentVersionNumber = pageData.version?.number || 1;
       const title = pageData.title || 'Changelogs';
@@ -83,27 +102,27 @@ export class JiraService {
       // Prepend the new changelog update to existing content
       const updatedStorage = `${newChangelogHTML}\n<br/>\n${existingStorage}`;
 
-      // 2. Put updated page back to Confluence REST API v1
-      await this.client!.put(`/wiki/rest/api/content/${pageId}`, {
+      // 2. Write it back as the next version
+      await this.client!.put(pagesUrl, {
         id: pageId,
-        type: 'page',
+        status: 'current',
         title,
+        body: {
+          representation: 'storage',
+          value: updatedStorage,
+        },
         version: {
           number: currentVersionNumber + 1,
-        },
-        body: {
-          storage: {
-            value: updatedStorage,
-            representation: 'storage',
-          },
+          message: `Changelog ${version}`,
         },
       });
 
       const details = `Successfully updated Confluence Page "${title}" (ID: ${pageId}) to version ${currentVersionNumber + 1} with release ${version} (commit: ${latestCommit.shortHash})`;
       return { success: true, mode: 'confluence_page', details };
     } catch (error: any) {
-      const errMsg = error.response?.data?.message || error.response?.data?.errorMessages?.join(', ') || error.message;
-      throw new Error(`Failed to update Confluence Page ID ${pageId}: ${errMsg}`);
+      const status = error.response?.status ? ` (HTTP ${error.response.status})` : '';
+      const errMsg = error.response?.data?.message || error.response?.data?.errors?.map((e: any) => e.title).join(', ') || error.response?.data?.errorMessages?.join(', ') || error.message;
+      throw new Error(`Failed to update Confluence Page ID ${pageId}${status}: ${errMsg}`);
     }
   }
 
