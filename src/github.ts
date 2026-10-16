@@ -100,7 +100,7 @@ export class GitHubService {
       // First try with --merges if enabled
       for (const branchRef of branchesToTry) {
         try {
-          output = execSync(`git log ${branchRef} ${mergesFlag}-n ${limit} --pretty=format:"${format}"`, {
+          output = execSync(`git log ${branchRef} ${mergesFlag}-n ${limit} --abbrev=7 --pretty=format:"${format}"`, {
             encoding: 'utf-8',
             cwd,
           });
@@ -114,7 +114,7 @@ export class GitHubService {
       if (!output.trim() && mergesOnly) {
         for (const branchRef of branchesToTry) {
           try {
-            output = execSync(`git log ${branchRef} -n ${limit} --pretty=format:"${format}"`, {
+            output = execSync(`git log ${branchRef} -n ${limit} --abbrev=7 --pretty=format:"${format}"`, {
               encoding: 'utf-8',
               cwd,
             });
@@ -126,7 +126,7 @@ export class GitHubService {
       }
 
       if (!output.trim()) {
-        output = execSync(`git log -n ${limit} --pretty=format:"${format}"`, {
+        output = execSync(`git log -n ${limit} --abbrev=7 --pretty=format:"${format}"`, {
           encoding: 'utf-8',
           cwd,
         });
@@ -171,7 +171,7 @@ export class GitHubService {
   }
 
   private generateVersion(shortHash: string): string {
-    if (this.config.versioning.manifestVersion) {
+    if (this.config.versioning.manifestVersion || this.config.versioning.bareHash) {
       return shortHash;
     }
     const base = this.config.versioning.prefix;

@@ -21,6 +21,7 @@ program
   .option('-m, --mode <mode>', 'Update mode: issue_comment, issue_description, jira_version, or confluence_page')
   .option('-v, --version-prefix <prefix>', 'Base version tag prefix (e.g. v1.0.0)')
   .option('--manifest-version <version>', 'Integrity manifest inventory version; tag becomes the bare commit hash and MANIFEST_VERSION is shown on its own line')
+  .option('--bare-hash', 'Use the bare short commit hash as the version tag (no prefix, no MANIFEST_VERSION line)')
   .option('-o, --owner <owner>', 'GitHub repository owner/username')
   .option('-r, --repo <repo>', 'GitHub repository name')
   .option('-b, --branch <branch>', 'GitHub target branch (default: main)')
@@ -57,6 +58,10 @@ program
       if (options.manifestVersion) {
         overrides.versioning = overrides.versioning || {};
         overrides.versioning.manifestVersion = options.manifestVersion;
+      }
+      if (options.bareHash) {
+        overrides.versioning = overrides.versioning || {};
+        overrides.versioning.bareHash = true;
       }
       if (options.owner || options.repo || options.branch || options.path) {
         overrides.github = overrides.github || {};
