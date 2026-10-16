@@ -15,6 +15,7 @@ export interface SyncResult {
   jiraDetails: string;
   message: string;
   skipped?: boolean;
+  manifestVersion?: string;
 }
 
 export async function runSync(options?: Partial<AppConfig>): Promise<SyncResult> {
@@ -63,6 +64,7 @@ export async function runSync(options?: Partial<AppConfig>): Promise<SyncResult>
         jiraDetails: skipMsg,
         message: skipMsg,
         skipped: true,
+        manifestVersion: config.versioning.manifestVersion,
       };
     }
 
@@ -130,6 +132,7 @@ export async function runSync(options?: Partial<AppConfig>): Promise<SyncResult>
       jiraDetails: jiraResult.details,
       message: summaryMessage,
       skipped: false,
+      manifestVersion: config.versioning.manifestVersion,
     };
   } catch (err: any) {
     Logger.appendLog({

@@ -20,8 +20,9 @@ export class EmailService {
     const smtp = this.config.notification.smtp;
 
     const subject = `🚀 [Changelog Update] Release ${version} published for commit ${latestCommit.shortHash}`;
-    const htmlBody = ChangelogGenerator.generateConfluenceStorageFormat(version, latestCommit, commits);
-    const plainText = ChangelogGenerator.generateMarkdown(version, latestCommit, commits);
+    const manifestVersion = this.config.versioning.manifestVersion;
+    const htmlBody = ChangelogGenerator.generateConfluenceStorageFormat(version, latestCommit, commits, manifestVersion);
+    const plainText = ChangelogGenerator.generateMarkdown(version, latestCommit, commits, undefined, manifestVersion);
 
     if (smtp?.host && smtp?.user && smtp?.pass) {
       try {

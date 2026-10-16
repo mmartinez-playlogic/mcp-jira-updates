@@ -47,12 +47,14 @@ export class ChangelogGenerator {
     version: string,
     latestCommit: CommitInfo,
     commits: CommitInfo[],
-    repoUrl?: string
+    repoUrl?: string,
+    manifestVersion?: string
   ): string {
     const categorized = this.categorizeCommits(commits);
     const dateStr = new Date().toISOString().split('T')[0];
 
     let md = `## 🚀 Release / Deployment Update: ${version}\n`;
+    if (manifestVersion) md += `**MANIFEST_VERSION:** ${manifestVersion}\n`;
     md += `**Date:** ${dateStr} | **Target Commit:** \`${latestCommit.shortHash}\` (${latestCommit.hash})\n`;
     md += `**Author:** ${latestCommit.author}\n\n`;
 
@@ -85,7 +87,8 @@ export class ChangelogGenerator {
   static generateADF(
     version: string,
     latestCommit: CommitInfo,
-    commits: CommitInfo[]
+    commits: CommitInfo[],
+    manifestVersion?: string
   ): any {
     const categorized = this.categorizeCommits(commits);
     const dateStr = new Date().toISOString().split('T')[0];
@@ -96,6 +99,15 @@ export class ChangelogGenerator {
         attrs: { level: 2 },
         content: [{ type: 'text', text: `🚀 Release / Deployment Update: ${version}` }],
       },
+      ...(manifestVersion
+        ? [{
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'MANIFEST_VERSION: ', marks: [{ type: 'strong' }] },
+              { type: 'text', text: manifestVersion },
+            ],
+          }]
+        : []),
       {
         type: 'paragraph',
         content: [
@@ -179,12 +191,14 @@ export class ChangelogGenerator {
   static generateConfluenceStorageFormat(
     version: string,
     latestCommit: CommitInfo,
-    commits: CommitInfo[]
+    commits: CommitInfo[],
+    manifestVersion?: string
   ): string {
     const categorized = this.categorizeCommits(commits);
     const dateStr = new Date().toISOString().split('T')[0];
 
     let html = `<h2>🚀 Release / Deployment Update: ${version}</h2>`;
+    if (manifestVersion) html += `<p><strong>MANIFEST_VERSION:</strong> ${manifestVersion}</p>`;
     html += `<p><strong>Date:</strong> ${dateStr} | <strong>Target Commit:</strong> <code>${latestCommit.shortHash}</code> (${latestCommit.hash})<br/>`;
     html += `<strong>Author:</strong> ${latestCommit.author}</p>`;
 

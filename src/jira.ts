@@ -35,7 +35,7 @@ export class JiraService {
       const summary = ChangelogGenerator.generateSummaryText(version, latestCommit, commits.length);
       console.log('🔍 [DRY RUN] Would send update to Jira:');
       console.log('--- Markdown Output ---');
-      console.log(ChangelogGenerator.generateMarkdown(version, latestCommit, commits));
+      console.log(ChangelogGenerator.generateMarkdown(version, latestCommit, commits, undefined, this.config.versioning.manifestVersion));
       return { success: true, mode: 'DRY_RUN', details: summary };
     }
 
@@ -70,7 +70,7 @@ export class JiraService {
     const pageId = this.config.jira.confluencePageId;
     if (!pageId) throw new Error('CONFLUENCE_PAGE_ID or CONFLUENCE_PAGE_URL is required for Confluence updates');
 
-    const newChangelogHTML = ChangelogGenerator.generateConfluenceStorageFormat(version, latestCommit, commits);
+    const newChangelogHTML = ChangelogGenerator.generateConfluenceStorageFormat(version, latestCommit, commits, this.config.versioning.manifestVersion);
 
     try {
       // 1. Fetch current Confluence page content and version
@@ -118,7 +118,7 @@ export class JiraService {
     const issueKey = this.config.jira.issueKey;
     if (!issueKey) throw new Error('JIRA_ISSUE_KEY is required to post a comment');
 
-    const adfBody = ChangelogGenerator.generateADF(version, latestCommit, commits);
+    const adfBody = ChangelogGenerator.generateADF(version, latestCommit, commits, this.config.versioning.manifestVersion);
 
     try {
       const response = await this.client!.post(`/rest/api/3/issue/${issueKey}/comment`, {
@@ -145,7 +145,7 @@ export class JiraService {
     const issueKey = this.config.jira.issueKey;
     if (!issueKey) throw new Error('JIRA_ISSUE_KEY is required to update issue description');
 
-    const adfBody = ChangelogGenerator.generateADF(version, latestCommit, commits);
+    const adfBody = ChangelogGenerator.generateADF(version, latestCommit, commits, this.config.versioning.manifestVersion);
 
     try {
       await this.client!.put(`/rest/api/3/issue/${issueKey}`, {

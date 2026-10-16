@@ -20,6 +20,7 @@ program
   .option('-p, --project <projectKey>', 'Jira Project Key (e.g. PROJ)')
   .option('-m, --mode <mode>', 'Update mode: issue_comment, issue_description, jira_version, or confluence_page')
   .option('-v, --version-prefix <prefix>', 'Base version tag prefix (e.g. v1.0.0)')
+  .option('--manifest-version <version>', 'Integrity manifest inventory version; tag becomes the bare commit hash and MANIFEST_VERSION is shown on its own line')
   .option('-o, --owner <owner>', 'GitHub repository owner/username')
   .option('-r, --repo <repo>', 'GitHub repository name')
   .option('-b, --branch <branch>', 'GitHub target branch (default: main)')
@@ -53,6 +54,10 @@ program
         overrides.versioning = overrides.versioning || {};
         overrides.versioning.prefix = options.versionPrefix;
       }
+      if (options.manifestVersion) {
+        overrides.versioning = overrides.versioning || {};
+        overrides.versioning.manifestVersion = options.manifestVersion;
+      }
       if (options.owner || options.repo || options.branch || options.path) {
         overrides.github = overrides.github || {};
         if (options.owner) overrides.github.owner = options.owner;
@@ -66,6 +71,7 @@ program
       console.log('\n================ Execution Summary ================');
       console.log(`✨ Status:             ${result.skipped ? 'SKIPPED (No New Commits)' : 'SUCCESS'}`);
       console.log(`🏷️  Version Tag:       ${result.version}`);
+      if (result.manifestVersion) console.log(`📦 Manifest Version:   ${result.manifestVersion}`);
       console.log(`🔑 Target Hash:        ${result.latestCommitHash}`);
       console.log(`📊 Commits Processed:  ${result.commitsProcessed}`);
       console.log(`📌 Jira/Confluence:    ${result.jiraDetails}`);

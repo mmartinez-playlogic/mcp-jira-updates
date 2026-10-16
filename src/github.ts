@@ -171,6 +171,9 @@ export class GitHubService {
   }
 
   private generateVersion(shortHash: string): string {
+    if (this.config.versioning.manifestVersion) {
+      return shortHash;
+    }
     const base = this.config.versioning.prefix;
     if (this.config.versioning.includeCommitHash) {
       return `${base}+${shortHash}`;

@@ -32,6 +32,9 @@ export interface AppConfig {
     prefix: string;
     includeCommitHash: boolean;
     mergesOnly?: boolean;
+    /** Integrity manifest inventory version. When set, the version tag is the bare
+     *  commit hash and the manifest version is printed on its own line. */
+    manifestVersion?: string;
   };
   notification: {
     webhookUrl?: string;
@@ -87,6 +90,7 @@ export function getConfig(overrides?: Partial<AppConfig>): AppConfig {
       prefix: overrides?.versioning?.prefix || process.env.VERSION_PREFIX || 'v1.0.0',
       includeCommitHash: overrides?.versioning?.includeCommitHash ?? (process.env.INCLUDE_COMMIT_HASH !== 'false'),
       mergesOnly: overrides?.versioning?.mergesOnly ?? (process.env.MERGES_ONLY === 'true' || process.env.MERGES_ONLY === undefined),
+      manifestVersion: overrides?.versioning?.manifestVersion || process.env.MANIFEST_VERSION || undefined,
     },
     notification: {
       webhookUrl: overrides?.notification?.webhookUrl || process.env.NOTIFICATION_WEBHOOK_URL,
